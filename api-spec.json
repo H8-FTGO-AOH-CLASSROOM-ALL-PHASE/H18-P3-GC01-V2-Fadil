@@ -12,8 +12,80 @@
     }
   ],
   "paths": {
+    "/register": {
+      "post": {
+        "tags": [
+          "auth-api"
+        ],
+        "summary": "Register a new user",
+        "description": "Register a new user using an email address and password",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthCredentials"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User registered successfully"
+          },
+          "400": {
+            "description": "Invalid request body"
+          },
+          "409": {
+            "description": "A user with this email address already exists"
+          }
+        }
+      }
+    },
+    "/login": {
+      "post": {
+        "tags": [
+          "auth-api"
+        ],
+        "summary": "Log in a user",
+        "description": "Log in using an email address and password",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthCredentials"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User logged in successfully. The returned token can be used as a Bearer token for authenticated requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body"
+          },
+          "401": {
+            "description": "Invalid email address or password"
+          }
+        }
+      }
+    },
     "/transactions": {
       "get": {
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "tags": [
           "transaction-api"
         ],
@@ -54,6 +126,11 @@
         }
       },
       "post": {
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "tags": [
           "transaction-api"
         ],
@@ -118,6 +195,11 @@
     },
     "/transactions/{id}": {
       "get": {
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "tags": [
           "transaction-api"
         ],
@@ -151,6 +233,11 @@
         }
       },
       "put": {
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "tags": [
           "transaction-api"
         ],
@@ -197,6 +284,11 @@
         }
       },
       "delete": {
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "tags": [
           "transaction-api"
         ],
@@ -225,6 +317,11 @@
     },
     "/products": {
       "get": {
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "tags": [
           "product-api"
         ],
@@ -247,6 +344,11 @@
         }
       },
       "post": {
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "tags": [
           "product-api"
         ],
@@ -281,6 +383,11 @@
     },
     "/products/{id}": {
       "get": {
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "tags": [
           "product-api"
         ],
@@ -314,6 +421,11 @@
         }
       },
       "put": {
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "tags": [
           "product-api"
         ],
@@ -360,6 +472,11 @@
         }
       },
       "delete": {
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "tags": [
           "product-api"
         ],
@@ -388,7 +505,50 @@
     }
   },
   "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
     "schemas": {
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Access token to send in the Authorization header as Bearer <token>."
+          },
+          "token_type": {
+            "type": "string",
+            "example": "Bearer"
+          }
+        },
+        "required": [
+          "token",
+          "token_type"
+        ]
+      },
+      "AuthCredentials": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "user@example.com"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "example": "password123"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
       "Transaction": {
         "type": "object",
         "properties": {
