@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"net/http"
 	"strings"
@@ -13,12 +15,19 @@ import (
 )
 
 type AuthHandler struct {
-	users     *repository.UserRepository
-	jwtSecret string
+	users *repository.UserRepository
 }
 
-func NewAuthHandler(users *repository.UserRepository, jwtSecret string) *AuthHandler {
-	return &AuthHandler{users: users, jwtSecret: jwtSecret}
+func NewAuthHandler(users *repository.UserRepository) *AuthHandler {
+	return &AuthHandler{users: users}
+}
+
+func newSecret() (string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
 }
 
 type credentials struct {
@@ -50,7 +59,12 @@ func (h *AuthHandler) Register(c echo.Context) error {
 		return err
 	}
 
-	user := &repository.User{Email: req.Email, Password: string(hash)}
+	secret, err := newSecret()
+	if err != nil {
+		return err
+	}
+
+	user := &repository.User{Email: req.Email, Password: string(hash), JWTSecret: secret}
 	if err := h.users.Create(c.Request().Context(), user); err != nil {
 		if errors.Is(err, repository.ErrEmailDuplicate) {
 			return echo.NewHTTPError(http.StatusConflict, "email already registered")
@@ -79,7 +93,7 @@ func (h *AuthHandler) Login(c echo.Context) error {
 		return invalid
 	}
 
-	token, err := middleware.GenerateToken(h.jwtSecret, user.ID, user.Email)
+	token, err := middleware.GenerateToken(user.JWTSecret, user.ID, user.Email)
 	if err != nil {
 		return err
 	}

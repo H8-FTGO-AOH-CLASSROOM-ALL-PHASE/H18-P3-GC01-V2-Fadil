@@ -4,23 +4,26 @@ import (
 	"context"
 	"errors"
 
+	"H18-P3-GC01-V2-Fadil/database"
+
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 type User struct {
-	ID       int64  `bson:"_id" json:"id"`
-	Email    string `bson:"email" json:"email"`
-	Password string `bson:"password" json:"-"` // stores the hashed password
+	ID        int64  `bson:"_id" json:"id"`
+	Email     string `bson:"email" json:"email"`
+	Password  string `bson:"password" json:"-"`   // stores the hashed password
+	JWTSecret string `bson:"jwt_secret" json:"-"` // unique signing secret for this user
 }
 
 type UserRepository struct {
 	col *mongo.Collection
 }
 
-func NewUserRepository(db *mongo.Database) *UserRepository {
-	return &UserRepository{col: db.Collection("users")}
+func NewUserRepository(conf *database.Config) *UserRepository {
+	return &UserRepository{col: conf.GetNoSQLDatabaseConnection().Collection("users")}
 }
 
 // EnsureIndexes creates the unique index on email.
@@ -45,6 +48,19 @@ func (r *UserRepository) Create(ctx context.Context, u *User) error {
 		return err
 	}
 	return nil
+}
+
+// FindByID - used by the JWT middleware to load the user's secret
+func (r *UserRepository) FindByID(ctx context.Context, id int64) (*User, error) {
+	var u User
+	err := r.col.FindOne(ctx, bson.D{{Key: "_id", Value: id}}).Decode(&u)
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &u, nil
 }
 
 // FindByEmail - used by POST /login

@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -28,8 +30,13 @@ func GenerateToken(secret string, userID int64, email string) (string, error) {
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(secret))
 }
 
-// JWT validates the "Authorization: Bearer <token>" header.
-func JWT(secret string) echo.MiddlewareFunc {
+// SecretLookup returns the JWT secret that belongs to the given user.
+type SecretLookup func(ctx context.Context, userID int64) (string, error)
+
+// JWT validates the "Authorization: Bearer <token>" header using the
+// per-user secret of the user named in the token claims.
+func JWT(lookup SecretLookup) echo.MiddlewareFunc {
+	unauthorized := echo.NewHTTPError(http.StatusUnauthorized, "invalid or expired token")
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			header := c.Request().Header.Get(echo.HeaderAuthorization)
@@ -40,10 +47,19 @@ func JWT(secret string) echo.MiddlewareFunc {
 
 			claims := &Claims{}
 			token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (any, error) {
+				// The claim is only used to find the secret; the signature is still verified with it.
+				c, ok := t.Claims.(*Claims)
+				if !ok || c.UserID == 0 {
+					return nil, errors.New("missing user id")
+				}
+				secret, err := lookup(context.Background(), c.UserID)
+				if err != nil || secret == "" {
+					return nil, errors.New("unknown user")
+				}
 				return []byte(secret), nil
 			}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}))
 			if err != nil || !token.Valid {
-				return echo.NewHTTPError(http.StatusUnauthorized, "invalid or expired token")
+				return unauthorized
 			}
 
 			c.Set("user", claims)

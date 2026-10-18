@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 
+	"H18-P3-GC01-V2-Fadil/database"
+
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
@@ -19,8 +21,8 @@ type ProductRepository struct {
 	col *mongo.Collection
 }
 
-func NewProductRepository(db *mongo.Database) *ProductRepository {
-	return &ProductRepository{col: db.Collection("products")}
+func NewProductRepository(conf *database.Config) *ProductRepository {
+	return &ProductRepository{col: conf.GetNoSQLDatabaseConnection().Collection("products")}
 }
 
 // Create - POST /products

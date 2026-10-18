@@ -26,24 +26,18 @@ func getenv(key, fallback string) string {
 func main() {
 	_ = godotenv.Load()
 
-	jwtSecret := os.Getenv("JWT_SECRET")
-	if jwtSecret == "" {
-		log.Fatal("JWT_SECRET not set!")
-	}
-
 	cfg := &database.Config{DBMongoName: getenv("MONGODB_NAME", "shopping")}
-	db := cfg.GetNoSQLDatabaseConnection()
 
-	userRepo := repository.NewUserRepository(db)
+	userRepo := repository.NewUserRepository(cfg)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := userRepo.EnsureIndexes(ctx); err != nil {
 		log.Fatalf("failed to create user indexes: %v", err)
 	}
 
-	authHandler := handler.NewAuthHandler(userRepo, jwtSecret)
-	productHandler := handler.NewProductHandler(repository.NewProductRepository(db))
-	transactionHandler := handler.NewTransactionHandler(repository.NewTransactionRepository(db))
+	authHandler := handler.NewAuthHandler(userRepo)
+	productHandler := handler.NewProductHandler(repository.NewProductRepository(cfg))
+	transactionHandler := handler.NewTransactionHandler(repository.NewTransactionRepository(cfg))
 
 	e := echo.New()
 	e.Use(middleware.Logger(), middleware.Recover())
@@ -52,7 +46,13 @@ func main() {
 	api.POST("/register", authHandler.Register)
 	api.POST("/login", authHandler.Login)
 
-	protected := api.Group("", appmw.JWT(jwtSecret))
+	protected := api.Group("", appmw.JWT(func(ctx context.Context, userID int64) (string, error) {
+		u, err := userRepo.FindByID(ctx, userID)
+		if err != nil {
+			return "", err
+		}
+		return u.JWTSecret, nil
+	}))
 
 	protected.POST("/products", productHandler.Create)
 	protected.GET("/products", productHandler.GetAll)

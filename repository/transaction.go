@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 
+	"H18-P3-GC01-V2-Fadil/database"
+
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
@@ -17,8 +19,8 @@ type TransactionRepository struct {
 	col *mongo.Collection
 }
 
-func NewTransactionRepository(db *mongo.Database) *TransactionRepository {
-	return &TransactionRepository{col: db.Collection("transactions")}
+func NewTransactionRepository(conf *database.Config) *TransactionRepository {
+	return &TransactionRepository{col: conf.GetNoSQLDatabaseConnection().Collection("transactions")}
 }
 
 // Create - POST /transactions
