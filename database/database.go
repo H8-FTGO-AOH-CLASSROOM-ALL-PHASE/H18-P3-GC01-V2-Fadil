@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/joho/godotenv"
@@ -27,11 +28,32 @@ func (conf *Config) GetNoSQLDatabaseConnection() *mongo.Database {
 	return conf.db
 }
 
-func (conf *Config) connect() *mongo.Database {
-	//	Load environment variable from .env
-	if err := godotenv.Load(); err != nil {
-		log.Println("[Database]: env files not found!.")
+// LoadEnv loads the first .env found in the working directory or any parent directory.
+func LoadEnv() {
+	dir, err := os.Getwd()
+	if err != nil {
+		log.Println("[Database]: cannot get working directory.")
+		return
 	}
+	for {
+		path := filepath.Join(dir, ".env")
+		if _, err := os.Stat(path); err == nil {
+			if err := godotenv.Load(path); err != nil {
+				log.Println("[Database]: failed to load", path)
+			}
+			return
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			log.Println("[Database]: env files not found!.")
+			return
+		}
+		dir = parent
+	}
+}
+
+func (conf *Config) connect() *mongo.Database {
+	LoadEnv()
 
 	//Get MongoDB URI
 	mongoDBURI := os.Getenv("MONGODB_URI")

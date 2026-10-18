@@ -11,7 +11,6 @@ import (
 	appmw "H18-P3-GC01-V2-Fadil/middleware"
 	"H18-P3-GC01-V2-Fadil/repository"
 
-	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -24,7 +23,7 @@ func getenv(key, fallback string) string {
 }
 
 func main() {
-	_ = godotenv.Load()
+	database.LoadEnv()
 
 	cfg := &database.Config{DBMongoName: getenv("MONGODB_NAME", "shopping")}
 
