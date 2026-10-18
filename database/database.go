@@ -36,12 +36,6 @@ func (conf *Config) GetNoSQLDatabaseConnection() *mongo.Database {
 		panic(err)
 	}
 
-	defer func() {
-		if err = client.Disconnect(context.TODO()); err != nil {
-			panic(err)
-		}
-	}()
-
 	// Send a ping to confirm a successful connection
 	if err := client.Ping(context.TODO(), readpref.Primary()); err != nil {
 		panic(err)
