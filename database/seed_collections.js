@@ -9,7 +9,3 @@ db.products.insertMany([
 
 // check seeded data
 db.products.find()
-
-//find product data
-
-db.products.find()
