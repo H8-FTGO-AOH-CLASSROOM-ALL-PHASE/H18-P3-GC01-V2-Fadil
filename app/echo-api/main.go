@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
 	"os"
 	"time"
 
@@ -14,6 +15,26 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
+
+const swaggerUIPage = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Shopping API - Swagger UI</title>
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+  <script>
+    window.ui = SwaggerUIBundle({
+      url: "/api-spec.json",
+      dom_id: "#swagger-ui",
+      persistAuthorization: true
+    });
+  </script>
+</body>
+</html>`
 
 func getenv(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
@@ -45,6 +66,14 @@ func main() {
 		AllowMethods: []string{echo.GET, echo.HEAD, echo.PUT, echo.PATCH, echo.POST, echo.DELETE, echo.OPTIONS},
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
 	}))
+
+	e.File("/api-spec.json", "api-spec.json")
+	e.GET("/docs", func(c echo.Context) error {
+		return c.HTML(http.StatusOK, swaggerUIPage)
+	})
+	e.GET("/docs/", func(c echo.Context) error {
+		return c.Redirect(http.StatusMovedPermanently, "/docs")
+	})
 
 	api := e.Group("/api")
 	api.POST("/register", authHandler.Register)
