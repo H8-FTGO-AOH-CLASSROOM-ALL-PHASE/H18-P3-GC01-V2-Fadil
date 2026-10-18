@@ -1,14 +1,27 @@
-
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Payment Restful API MongoDB",
-    "description": "Payment API using MongoDB integrated using 3rd party payment gateway",
+    "title": "Shopping Restful API MongoDB",
+    "description": "Shopping API (users, products, transactions) built with Echo and MongoDB. Product and transaction endpoints require a Bearer JWT obtained from /login. Each user has their own JWT signing secret.",
     "version": "1.0.0"
   },
   "servers": [
     {
       "url": "http://localhost:8080/api"
+    }
+  ],
+  "tags": [
+    {
+      "name": "auth-api",
+      "description": "Register and login"
+    },
+    {
+      "name": "product-api",
+      "description": "Product management"
+    },
+    {
+      "name": "transaction-api",
+      "description": "Transaction management"
     }
   ],
   "paths": {
@@ -18,7 +31,7 @@
           "auth-api"
         ],
         "summary": "Register a new user",
-        "description": "Register a new user using an email address and password",
+        "description": "Register a new user using an email and password. The email is trimmed and lowercased, and must be unique.",
         "requestBody": {
           "required": true,
           "content": {
@@ -31,13 +44,33 @@
         },
         "responses": {
           "201": {
-            "description": "User registered successfully"
+            "description": "User registered successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                },
+                "example": {
+                  "message": "user registered successfully"
+                }
+              }
+            }
           },
           "400": {
-            "description": "Invalid request body"
+            "$ref": "#/components/responses/BadRequest"
           },
           "409": {
-            "description": "A user with this email address already exists"
+            "description": "Email already registered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "message": "email already registered"
+                }
+              }
+            }
           }
         }
       }
@@ -48,7 +81,7 @@
           "auth-api"
         ],
         "summary": "Log in a user",
-        "description": "Log in using an email address and password",
+        "description": "Log in using an email and password. Returns a JWT (valid for 24 hours) to send as a Bearer token.",
         "requestBody": {
           "required": true,
           "content": {
@@ -61,7 +94,7 @@
         },
         "responses": {
           "200": {
-            "description": "User logged in successfully. The returned token can be used as a Bearer token for authenticated requests.",
+            "description": "Logged in successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -71,86 +104,69 @@
             }
           },
           "400": {
-            "description": "Invalid request body"
+            "$ref": "#/components/responses/BadRequest"
           },
           "401": {
-            "description": "Invalid email address or password"
+            "description": "Invalid email or password",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "message": "invalid email or password"
+                }
+              }
+            }
           }
         }
       }
     },
     "/transactions": {
       "get": {
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
         "tags": [
           "transaction-api"
         ],
         "summary": "List all transactions",
         "description": "Retrieve all transactions",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successfully retrieved all transactions",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "number",
-                      "example": 200
-                    },
-                    "status": {
-                      "type": "string",
-                      "example": "success"
-                    },
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Transaction"
-                      }
-                    }
-                  },
-                  "required": [
-                    "code",
-                    "status",
-                    "data"
-                  ]
+                  "$ref": "#/components/schemas/TransactionListResponse"
                 }
               }
             }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
           }
         }
       },
       "post": {
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
         "tags": [
           "transaction-api"
         ],
         "summary": "Create a transaction",
         "description": "Create a new transaction",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "example": "Payment for order #123"
-                  }
-                },
-                "required": [
-                  "name"
-                ]
+                "$ref": "#/components/schemas/TransactionInput"
               }
             }
           }
@@ -161,59 +177,35 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "number",
-                      "example": 201
-                    },
-                    "status": {
-                      "type": "string",
-                      "example": "success"
-                    },
-                    "data": {
-                      "$ref": "#/components/schemas/Transaction"
-                    }
-                  },
-                  "required": [
-                    "code",
-                    "status",
-                    "data"
-                  ]
+                  "$ref": "#/components/schemas/TransactionResponse"
                 }
               }
             }
           },
           "400": {
-            "description": "Invalid request body"
+            "$ref": "#/components/responses/BadRequest"
           },
-          "500": {
-            "description": "Internal server error"
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
           }
         }
       }
     },
     "/transactions/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Id"
+        }
+      ],
       "get": {
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
         "tags": [
           "transaction-api"
         ],
         "summary": "Get a transaction",
         "description": "Retrieve a specific transaction by ID",
-        "parameters": [
+        "security": [
           {
-            "name": "id",
-            "in": "path",
-            "description": "Transaction ID",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -222,36 +214,31 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Transaction"
+                  "$ref": "#/components/schemas/TransactionResponse"
                 }
               }
             }
           },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
           "404": {
-            "description": "Transaction not found"
+            "$ref": "#/components/responses/TransactionNotFound"
           }
         }
       },
       "put": {
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
         "tags": [
           "transaction-api"
         ],
         "summary": "Update a transaction",
         "description": "Update a transaction's information",
-        "parameters": [
+        "security": [
           {
-            "name": "id",
-            "in": "path",
-            "description": "Transaction ID",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "bearerAuth": []
           }
         ],
         "requestBody": {
@@ -270,63 +257,68 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Transaction"
+                  "$ref": "#/components/schemas/TransactionResponse"
                 }
               }
             }
           },
           "400": {
-            "description": "Invalid request body"
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
           },
           "404": {
-            "description": "Transaction not found"
+            "$ref": "#/components/responses/TransactionNotFound"
           }
         }
       },
       "delete": {
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
         "tags": [
           "transaction-api"
         ],
         "summary": "Delete a transaction",
         "description": "Delete a transaction by ID",
-        "parameters": [
+        "security": [
           {
-            "name": "id",
-            "in": "path",
-            "description": "Transaction ID",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "bearerAuth": []
           }
         ],
         "responses": {
           "200": {
-            "description": "Transaction deleted successfully"
+            "description": "Transaction deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionDeleteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
           },
           "404": {
-            "description": "Transaction not found"
+            "$ref": "#/components/responses/TransactionNotFound"
           }
         }
       }
     },
     "/products": {
       "get": {
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
         "tags": [
           "product-api"
         ],
         "summary": "List all products",
         "description": "Retrieve all products",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successfully retrieved all products",
@@ -340,20 +332,23 @@
                 }
               }
             }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
           }
         }
       },
       "post": {
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
         "tags": [
           "product-api"
         ],
         "summary": "Create a product",
         "description": "Create a new product",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -376,32 +371,29 @@
             }
           },
           "400": {
-            "description": "Invalid request body"
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
           }
         }
       }
     },
     "/products/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Id"
+        }
+      ],
       "get": {
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
         "tags": [
           "product-api"
         ],
         "summary": "Get a product",
         "description": "Retrieve a specific product by ID",
-        "parameters": [
+        "security": [
           {
-            "name": "id",
-            "in": "path",
-            "description": "Product ID",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "bearerAuth": []
           }
         ],
         "responses": {
@@ -415,31 +407,26 @@
               }
             }
           },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
           "404": {
-            "description": "Product not found"
+            "$ref": "#/components/responses/ProductNotFound"
           }
         }
       },
       "put": {
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
         "tags": [
           "product-api"
         ],
         "summary": "Update a product",
         "description": "Update a product's information",
-        "parameters": [
+        "security": [
           {
-            "name": "id",
-            "in": "path",
-            "description": "Product ID",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "bearerAuth": []
           }
         ],
         "requestBody": {
@@ -464,41 +451,49 @@
             }
           },
           "400": {
-            "description": "Invalid request body"
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
           },
           "404": {
-            "description": "Product not found"
+            "$ref": "#/components/responses/ProductNotFound"
           }
         }
       },
       "delete": {
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
         "tags": [
           "product-api"
         ],
         "summary": "Delete a product",
         "description": "Delete a product by ID",
-        "parameters": [
+        "security": [
           {
-            "name": "id",
-            "in": "path",
-            "description": "Product ID",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "bearerAuth": []
           }
         ],
         "responses": {
           "200": {
-            "description": "Product deleted successfully"
+            "description": "Product deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                },
+                "example": {
+                  "message": "product deleted successfully"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
           },
           "404": {
-            "description": "Product not found"
+            "$ref": "#/components/responses/ProductNotFound"
           }
         }
       }
@@ -512,22 +507,94 @@
         "bearerFormat": "JWT"
       }
     },
+    "parameters": {
+      "Id": {
+        "name": "id",
+        "in": "path",
+        "description": "Numeric ID of the resource",
+        "required": true,
+        "schema": {
+          "type": "integer",
+          "format": "int64",
+          "example": 1
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Invalid request body or ID",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "message": "invalid request body"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Missing, malformed, invalid or expired Bearer token",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "message": "missing or malformed bearer token"
+            }
+          }
+        }
+      },
+      "ProductNotFound": {
+        "description": "Product not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "message": "product not found"
+            }
+          }
+        }
+      },
+      "TransactionNotFound": {
+        "description": "Transaction not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "message": "transaction not found"
+            }
+          }
+        }
+      }
+    },
     "schemas": {
-      "LoginResponse": {
+      "Error": {
         "type": "object",
         "properties": {
-          "token": {
-            "type": "string",
-            "description": "Access token to send in the Authorization header as Bearer <token>."
-          },
-          "token_type": {
-            "type": "string",
-            "example": "Bearer"
+          "message": {
+            "type": "string"
           }
         },
         "required": [
-          "token",
-          "token_type"
+          "message"
+        ]
+      },
+      "MessageResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
         ]
       },
       "AuthCredentials": {
@@ -549,12 +616,85 @@
           "password"
         ]
       },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "JWT to send in the Authorization header as: Bearer <token>"
+          },
+          "token_type": {
+            "type": "string",
+            "example": "Bearer"
+          }
+        },
+        "required": [
+          "token",
+          "token_type"
+        ]
+      },
+      "Product": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Laptop"
+          },
+          "price": {
+            "type": "number",
+            "minimum": 0,
+            "example": 12000000
+          },
+          "qty": {
+            "type": "integer",
+            "minimum": 0,
+            "example": 10
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "price",
+          "qty"
+        ]
+      },
+      "ProductInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "example": "Laptop"
+          },
+          "price": {
+            "type": "number",
+            "minimum": 0,
+            "example": 12000000
+          },
+          "qty": {
+            "type": "integer",
+            "minimum": 0,
+            "example": 10
+          }
+        },
+        "required": [
+          "name",
+          "price",
+          "qty"
+        ]
+      },
       "Transaction": {
         "type": "object",
         "properties": {
           "id": {
-            "type": "string",
-            "example": "1"
+            "type": "integer",
+            "format": "int64",
+            "example": 1
           },
           "name": {
             "type": "string",
@@ -571,6 +711,7 @@
         "properties": {
           "name": {
             "type": "string",
+            "minLength": 1,
             "example": "Payment for order #123"
           }
         },
@@ -578,24 +719,71 @@
           "name"
         ]
       },
-      "Product": {
+      "TransactionResponse": {
         "type": "object",
-        "description": "Product representation. Product-specific fields are accepted as defined by the service.",
         "properties": {
-          "id": {
+          "code": {
+            "type": "integer",
+            "example": 200
+          },
+          "status": {
             "type": "string",
-            "example": "1"
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Transaction"
           }
         },
-        "additionalProperties": true,
         "required": [
-          "id"
+          "code",
+          "status",
+          "data"
         ]
       },
-      "ProductInput": {
+      "TransactionListResponse": {
         "type": "object",
-        "description": "Product fields accepted by the service.",
-        "additionalProperties": true
+        "properties": {
+          "code": {
+            "type": "integer",
+            "example": 200
+          },
+          "status": {
+            "type": "string",
+            "example": "success"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Transaction"
+            }
+          }
+        },
+        "required": [
+          "code",
+          "status",
+          "data"
+        ]
+      },
+      "TransactionDeleteResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "example": 200
+          },
+          "status": {
+            "type": "string",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/MessageResponse"
+          }
+        },
+        "required": [
+          "code",
+          "status",
+          "data"
+        ]
       }
     }
   }

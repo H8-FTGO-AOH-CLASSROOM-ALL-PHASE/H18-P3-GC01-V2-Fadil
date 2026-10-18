@@ -62,6 +62,8 @@ Pastikan Anda menyediakan Dockerfile dan dokumentasi singkat tentang bagaimana m
   - /products/{id} (GET) - Retrieve a specific product by ID
   - /products/{id} (PUT) - Update a product informations
   - /products/{id} (DELETE) - Delete a product informations
+
+Untuk menguji API dari browser atau Swagger UI, jalankan Swagger UI melalui URL `http://` atau `https://`. API sudah mengizinkan request CORS. Jika Swagger UI berjalan di mesin lain atau secara online, ganti URL server `localhost` pada `api-spec.json` dengan URL API yang dapat diakses oleh browser tersebut.
   
 - Service Payment berjalan pada http://localhost:8081
   - /payments (POST) - Create a new payment
