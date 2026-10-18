@@ -25,7 +25,7 @@ func getenv(key, fallback string) string {
 func main() {
 	database.LoadEnv()
 
-	cfg := &database.Config{DBMongoName: getenv("MONGODB_NAME", "shopping")}
+	cfg := &database.Config{DBMongoName: getenv("MONGODB_NAME", "H18-P3-GC01-V2-Fadil")}
 
 	userRepo := repository.NewUserRepository(cfg)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
